@@ -1,5 +1,6 @@
 from pathlib import Path
 import tempfile
+from xml.dom import minidom
 import unittest
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
@@ -25,6 +26,12 @@ class GenerationTests(unittest.TestCase):
                     single = ET.fromstring(archive.read('customXml/item1.xml'))
                     self.assertEqual(len(single.findall('datensatz')), 1)
                     self.assertEqual(single.find('datensatz').get('id'), str(index))
+                    dom = minidom.parseString(archive.read('word/document.xml'))
+                    document_root = dom.documentElement
+                    ignored = document_root.getAttributeNS('http://schemas.openxmlformats.org/markup-compatibility/2006', 'Ignorable').split()
+                    self.assertTrue(ignored)
+                    for prefix in ignored:
+                        self.assertTrue(document_root.hasAttribute('xmlns:' + prefix), prefix)
                     doc = ET.fromstring(archive.read('word/document.xml'))
                     values = [node.text for node in doc.findall('.//'+W+'sdtContent/'+W+'r/'+W+'t')]
                     self.assertIn(f'Anna {index}', values)

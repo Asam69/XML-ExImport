@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import tempfile
 import xml.etree.ElementTree as ET
+from xml.dom import minidom
 from zipfile import ZipFile, ZIP_DEFLATED
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,14 +22,16 @@ def generate(xml_path, template_path, output_dir):
         raise ValueError('Die XML-Datei enthält keine Datensätze.')
     with ZipFile(template_path) as archive:
         files = {name: archive.read(name) for name in archive.namelist()}
-    base_doc = ET.fromstring(files['word/document.xml'])
+    # DOM preserves namespace declarations also referenced inside attribute values.
+    # ElementTree drops these, leaving mc:Ignorable prefixes undefined for Word.
+    base_doc = minidom.parseString(files['word/document.xml'])
     types = ET.fromstring(files['[Content_Types].xml'])
     for node in types:
         if node.get('PartName') == '/word/document.xml':
             node.set('ContentType', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml')
     files['[Content_Types].xml'] = ET.tostring(types, encoding='utf-8', xml_declaration=True)
-    controls = base_doc.findall('.//' + W + 'sdt')
-    tags = [control.find(W+'sdtPr/'+W+'tag').get(W+'val') for control in controls]
+    controls = base_doc.getElementsByTagNameNS(W[1:-1], 'sdt')
+    tags = [control.getElementsByTagNameNS(W[1:-1], 'tag')[0].getAttributeNS(W[1:-1], 'val') for control in controls]
     if sorted(tags) != sorted(('id',)+FIELDS):
         raise ValueError('Die Vorlage muss genau die sechs vorgesehenen Inhaltssteuerelemente enthalten.')
     planned = []
@@ -50,19 +53,22 @@ def generate(xml_path, template_path, output_dir):
     # Erst alle Pakete vorbereiten, dann veröffentlichen. Vorhandene Dateien bleiben erhalten.
     with tempfile.TemporaryDirectory(dir=output_dir) as staging:
         for row, values, target in planned:
-            doc = deepcopy(base_doc)
-            for control in doc.findall('.//' + W + 'sdt'):
-                key = control.find(W+'sdtPr/'+W+'tag').get(W+'val')
-                content = control.find(W+'sdtContent')
-                content.clear()
-                run = ET.SubElement(content, W+'r')
-                text = ET.SubElement(run, W+'t')
-                text.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
-                text.text = values[key]
+            doc = base_doc.cloneNode(deep=True)
+            for control in doc.getElementsByTagNameNS(W[1:-1], 'sdt'):
+                key = control.getElementsByTagNameNS(W[1:-1], 'tag')[0].getAttributeNS(W[1:-1], 'val')
+                content = control.getElementsByTagNameNS(W[1:-1], 'sdtContent')[0]
+                while content.firstChild:
+                    content.removeChild(content.firstChild)
+                run = doc.createElementNS(W[1:-1], 'w:r')
+                text = doc.createElementNS(W[1:-1], 'w:t')
+                text.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve')
+                text.appendChild(doc.createTextNode(values[key]))
+                run.appendChild(text)
+                content.appendChild(run)
             single = ET.Element('datensaetze', source.attrib)
             single.append(deepcopy(row))
             replacements = {
-                'word/document.xml': ET.tostring(doc, encoding='utf-8', xml_declaration=True),
+                'word/document.xml': doc.toxml(encoding='utf-8'),
                 'customXml/item1.xml': ET.tostring(single, encoding='utf-8', xml_declaration=True),
             }
             with ZipFile(Path(staging)/target.name, 'w', ZIP_DEFLATED) as archive:
