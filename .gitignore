@@ -2,3 +2,5 @@ __pycache__/
 data/
 *.docx
 !word/Produktbeleg-Beispiel.docx
+ausgabe*/
+datensaetze.xml

@@ -60,3 +60,13 @@ Die Tests verwenden eine temporäre Datenbank und prüfen Speicherung, Validieru
 Im Ordner `word/` liegen eine Word-Vorlage (`.dotx`), ein Beispieldokument und fiktive Beispiel-XML-Daten. Die [Anleitung](word/Anleitung.md) erklärt die XML-Zuordnung in Word Desktop unter Windows. Die Anwendung selbst exportiert weiterhin nur XML.
 
 Zum Herunterladen auf GitHub **Code → Download ZIP** wählen und das Archiv entpacken. Alternativ enthält `Word-Lernpaket.zip` nur die Word-Lerndateien.
+
+## Ein Word-Dokument pro Datensatz
+
+XML-Export als `datensaetze.xml` im Projektordner speichern, dann:
+
+```sh
+python tools/generate_word_documents.py datensaetze.xml --output ausgabe
+```
+
+Nur Python erforderlich. Details zur Vorlage und Datenbindung stehen in [word/Anleitung.md](word/Anleitung.md). Vorhandene Dokumente werden nicht überschrieben.

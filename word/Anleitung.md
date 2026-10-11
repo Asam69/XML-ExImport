@@ -57,7 +57,7 @@ Für beliebig viele Datensätze ist der nächste Schritt ein Generator:
 3. Den eingebetteten XML-Teil durch XML mit genau diesem einen Datensatz ersetzen und die angezeigten Feldwerte aktualisieren.
 4. Als `Produktbeleg-<ID>.docx` speichern; Dateinamen müssen bereinigt und doppelte Namen abgefangen werden.
 
-Damit können die bestehenden `[1]`-Bindungen erhalten bleiben, und jedes Dokument enthält nur seinen eigenen Datensatz. Dieser automatische Generator ist noch nicht Bestandteil der Anwendung. Zuerst lässt sich anhand dieser Vorlage die XML-Zuordnung nachvollziehen.
+Damit können die bestehenden `[1]`-Bindungen erhalten bleiben, und jedes Dokument enthält nur seinen eigenen Datensatz. Der automatische Generator steht als separates Kommandozeilenwerkzeug bereit; die Webanwendung selbst exportiert weiterhin nur XML. Die Bedienung steht weiter unten.
 
 ## Prüfung
 
@@ -74,3 +74,39 @@ python -m unittest discover -s tools -p 'test_*.py' -v
 ```
 
 Bei der ersten Vorlagenversion waren Inhalts-Typ und Verknüpfung des benutzerdefinierten XML-Teils doppelt enthalten. Die korrigierte Version verwendet die vorhandenen Einträge und prüft diese auf Eindeutigkeit. Bitte alte Downloads durch die neue Version ersetzen.
+
+## Automatisch ein Word-Dokument je Datensatz erzeugen
+
+Der Generator ist jetzt unter `tools/generate_word_documents.py` verfügbar. Er benötigt nur Python 3.10 oder neuer, keine zusätzlichen Pakete und kein installiertes Word.
+
+1. Lade auf GitHub die aktuelle Repository-Version über **Code → Download ZIP** herunter und entpacke sie. Verwende die enthaltene korrigierte Vorlage.
+2. Kopiere deinen XML-Export in den entpackten Projektordner und benenne ihn beispielsweise `datensaetze.xml`.
+3. Öffne in diesem Projektordner ein Terminal. Unter Windows kannst du im Explorer in die Adresszeile `powershell` eingeben und Enter drücken.
+4. Führe aus:
+
+```sh
+python tools/generate_word_documents.py datensaetze.xml --output ausgabe
+```
+
+Falls bei dir Python über `py` statt `python` gestartet wird, ersetze das erste Wort durch `py`.
+
+Bei drei Datensätzen entstehen drei Dateien im Ordner `ausgabe`, zum Beispiel `Produktbeleg-1001.docx`, `Produktbeleg-1002.docx` und `Produktbeleg-1003.docx`. Die Namen richten sich nach deinen IDs. Die Ausgabe im Terminal nennt die tatsächlich erzeugten Dateien.
+
+Öffne jedes Dokument und vergleiche ID, Namen, Produkt, Preis und Datum mit dem entsprechenden XML-Datensatz. Unter **Entwicklertools → XML-Zuordnungsbereich** kannst du außerdem den eingebetteten XML-Teil untersuchen: Er enthält genau einen Datensatz. Alle Bindungen beziehen sich weiterhin auf `datensatz[1]`, weil jede Dokumentkopie nur ihren eigenen Datensatz enthält.
+
+Vorhandene Ausgabedateien werden nicht überschrieben. Für einen weiteren Lauf wähle beispielsweise `--output ausgabe-neu`.
+
+### Die Struktur in deiner Vorlage nachvollziehen
+
+- Die linke Tabellenspalte enthält feste Beschriftungen.
+- Die rechte enthält sechs Klartext-Inhaltssteuerelemente.
+- Jedes Steuerelement besitzt einen Titel und ein Tag: `id`, `vorname`, `nachname`, `produkt`, `preis` oder `datum`.
+- Die XML-Bindung verbindet das Steuerelement mit dem entsprechenden XPath aus der Tabelle oben. Die ID wird aus dem Attribut `@id` gelesen.
+
+Du kannst Überschrift, Beschriftungen, Schriftarten und Tabellenlayout in Word ändern. Öffne dafür die `.dotx` über **Datei → Öffnen**, damit du die Vorlage selbst bearbeitest, und speichere sie. Behalte die sechs Steuerelemente und ihre Tags; entferne oder dupliziere sie nicht. Gib bei einer anderen Vorlage den Pfad ausdrücklich an:
+
+```sh
+python tools/generate_word_documents.py datensaetze.xml --template word/Meine-Vorlage.dotx --output ausgabe-neu
+```
+
+Der Generator ist auf die Struktur unserer Vorlage ausgelegt. Er ersetzt den eingebetteten XML-Teil und die sichtbaren Inhalte der sechs Steuerelemente. Eine beliebige andere Word-Vorlage oder zusätzliche XML-Teile unterstützt er nicht automatisch. Die Formatierung innerhalb der Datenfelder wird zunächst auf einfache Textausgabe zurückgesetzt; Tabellen- und Dokumentlayout bleiben bestehen.
