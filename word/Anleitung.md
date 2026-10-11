@@ -62,3 +62,15 @@ Damit können die bestehenden `[1]`-Bindungen erhalten bleiben, und jedes Dokume
 ## Prüfung
 
 Die erzeugten Office-Dateien wurden als ZIP-Pakete und auf wohlgeformtes XML geprüft. Alle sechs Bindungen wurden gegen die Beispiel-XML geprüft. Eine visuelle Prüfung bzw. das Aktualisierungsverhalten in Microsoft Word muss auf einem Rechner mit Word erfolgen; Word ist in der Cloud-Umgebung nicht installiert.
+
+## Vorlage erneut erstellen
+
+Der optionale Generator `tools/create_word_template.py` erstellt Vorlage und Beispieldokument. Er benötigt `python-docx` (bei dieser Erstellung Version 1.2.0); die XML-Webanwendung braucht dieses Paket nicht. Aus dem Repository-Verzeichnis:
+
+```sh
+python -m pip install python-docx==1.2.0
+python tools/create_word_template.py
+python -m unittest discover -s tools -p 'test_*.py' -v
+```
+
+Bei der ersten Vorlagenversion waren Inhalts-Typ und Verknüpfung des benutzerdefinierten XML-Teils doppelt enthalten. Die korrigierte Version verwendet die vorhandenen Einträge und prüft diese auf Eindeutigkeit. Bitte alte Downloads durch die neue Version ersetzen.
